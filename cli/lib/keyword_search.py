@@ -1,10 +1,11 @@
+from collections.abc import Iterable
 import string
-from .search_utils import DEFAULT_SEARCH_LIMIT, load_movies
+from .search_utils import DEFAULT_SEARCH_LIMIT, load_movies, load_stopwords
 
 
 def search_command(
     query: str, limit: int = DEFAULT_SEARCH_LIMIT
-) -> list[dict[str, str]]:
+) -> Iterable[dict[str, str]]:
     movies = load_movies()
     results: list[dict[str, str]] = []
 
@@ -19,7 +20,7 @@ def search_command(
     return results
 
 
-def title_contains_query(query: list[str], title: list[str]) -> bool:
+def title_contains_query(query: Iterable[str], title: Iterable[str]) -> bool:
     for token in query:
         for title_token in title:
             if token in title_token:
@@ -32,7 +33,12 @@ def preprocess_text(text: str) -> str:
     return lowered_text.translate(str.maketrans("", "", string.punctuation))
 
 
-def tokenize_text(text: str) -> list[str]:
+def tokenize_text(text: str) -> Iterable[str]:
+    stop_words = load_stopwords()
+
     preprocessed = preprocess_text(text)
     tokens = preprocessed.split(" ")
-    return list(filter(lambda item: item != "", tokens))
+    without_empty_tokens = list(
+        filter(lambda item: item != "" and item not in stop_words, tokens)
+    )
+    return without_empty_tokens
