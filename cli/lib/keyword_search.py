@@ -1,5 +1,8 @@
-from collections.abc import Iterable
 import string
+from collections.abc import Iterable
+
+from nltk.stem import PorterStemmer
+
 from .search_utils import DEFAULT_SEARCH_LIMIT, load_movies, load_stopwords
 
 
@@ -38,7 +41,11 @@ def tokenize_text(text: str) -> Iterable[str]:
 
     preprocessed = preprocess_text(text)
     tokens = preprocessed.split(" ")
-    without_empty_tokens = list(
+    without_empty_tokens_and_stopwords = list(
         filter(lambda item: item != "" and item not in stop_words, tokens)
     )
-    return without_empty_tokens
+    stemmer = PorterStemmer()
+    stemmed_words = list(map(
+        lambda item: str(stemmer.stem(item)), without_empty_tokens_and_stopwords
+    ))
+    return stemmed_words
