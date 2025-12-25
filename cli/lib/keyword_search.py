@@ -38,6 +38,13 @@ class InvertedIndex:
             pickle.dump(self.docmap, f)
         return self
 
+    def load(self):
+        with open(INDEX_PATH, mode="rb") as f:
+            self.index = pickle.load(f)
+        with open(DOCMAP_PATH, mode="rb") as f:
+            self.docmap = pickle.load(f)
+        return self
+
     def get_documents(self, term: str) -> list[int]:
         result = self.index.get(term.lower(), set())
         return sorted(result)
@@ -50,25 +57,25 @@ class InvertedIndex:
 
 
 def build_command():
-    idx = InvertedIndex().build().save()
-    docs = idx.get_documents("merida")
-    first_movie = idx.docmap[docs[0]]
-    print(f"First document for token 'merida' = {first_movie.id}: {first_movie.title}")
+    # Build and save the InvertedIndex.
+    _ = InvertedIndex().build().save()
 
 
 def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> Iterable[Movie]:
-    movies = load_movies()
-    results: list[Movie] = []
-
+    idx = InvertedIndex().load()
     query_tokens = tokenize_text(query)
 
-    for movie in movies:
-        title_tokens = tokenize_text(movie.title)
-        if title_contains_query(query_tokens, title_tokens):
-            results.append(movie)
-            if len(results) >= limit:
+    movie_ids: set[int] = set()
+    for token in query_tokens:
+        doc_ids = idx.get_documents(token)
+        for id in doc_ids:
+            movie_ids.add(id)
+            if len(movie_ids) >= limit:
                 break
-    return results
+        if len(movie_ids) >= limit:
+            break
+
+    return map(lambda id: idx.docmap[id], sorted(movie_ids))
 
 
 def title_contains_query(query: Iterable[str], title: Iterable[str]) -> bool:
