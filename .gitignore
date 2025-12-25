@@ -10,7 +10,8 @@ wheels/
 .venv
 
 # Data
-/data/
+data/
+cache/
 
 # uv files
 uv.lock
