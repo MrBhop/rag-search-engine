@@ -13,6 +13,7 @@ STOPWORDS_PATH = os.path.join(DATA_PATH, "stopwords.txt")
 CACHE_PATH = os.path.join(PROJECT_ROOT, "cache")
 INDEX_PATH = os.path.join(CACHE_PATH, "index.pkl")
 DOCMAP_PATH = os.path.join(CACHE_PATH, "docmap.pkl")
+TERM_FREQUENCIES_PATH = os.path.join(CACHE_PATH, "term_frequencies.pkl")
 
 
 @dataclass
