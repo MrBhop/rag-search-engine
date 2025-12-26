@@ -1,4 +1,5 @@
 from collections import Counter, defaultdict
+import math
 import os
 import pickle
 import string
@@ -94,6 +95,14 @@ def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> Iterable[Mo
 def tf_command(doc_id: int, term: str) -> int:
     idx = InvertedIndex().load()
     return idx.get_tf(doc_id, term)
+
+
+def idf_command(term: str) -> float:
+    token = tokenize_text(term)[0]
+    idx = InvertedIndex().load()
+    total_doc_count = len(idx.docmap)
+    term_match_count = len(idx.get_documents(token))
+    return math.log((total_doc_count + 1) / (term_match_count + 1))
 
 
 def title_contains_query(query: Iterable[str], title: Iterable[str]) -> bool:
