@@ -57,10 +57,21 @@ class InvertedIndex:
         return sorted(result)
 
     def get_tf(self, doc_id: int, term: str):
-        token = tokenize_text(term)
-        if len(token) > 1:
+        tokens = tokenize_text(term)
+        if len(tokens) > 1:
             raise ValueError("term must be a single token")
-        return self.term_frequencies.get(doc_id, Counter()).get(token[0], 0)
+        return self.term_frequencies.get(doc_id, Counter()).get(tokens[0], 0)
+
+    def get_idf(self, term: str):
+        tokens = tokenize_text(term)
+        if len(tokens) > 1:
+            raise ValueError("term must be a single token")
+        total_doc_count = len(self.docmap)
+        term_match_count = len(self.get_documents(tokens[0]))
+        return math.log((total_doc_count + 1) / (term_match_count + 1))
+
+    def get_tf_idf(self, doc_id: int, term: str):
+        return self.get_tf(doc_id, term) * self.get_idf(term)
 
     def __add_documents(self, doc_id: int, text: str):
         tokens = tokenize_text(preprocess_text(text))
@@ -98,11 +109,13 @@ def tf_command(doc_id: int, term: str) -> int:
 
 
 def idf_command(term: str) -> float:
-    token = tokenize_text(term)[0]
     idx = InvertedIndex().load()
-    total_doc_count = len(idx.docmap)
-    term_match_count = len(idx.get_documents(token))
-    return math.log((total_doc_count + 1) / (term_match_count + 1))
+    return idx.get_idf(term)
+
+
+def tf_idf_command(doc_id: int, term: str) -> float:
+    idx = InvertedIndex().load()
+    return idx.get_tf_idf(doc_id, term)
 
 
 def title_contains_query(query: Iterable[str], title: Iterable[str]) -> bool:
