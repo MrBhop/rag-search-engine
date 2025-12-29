@@ -52,26 +52,37 @@ class InvertedIndex:
             self.term_frequencies = pickle.load(f)
         return self
 
+    @staticmethod
+    def to_single_token(term: str) -> str:
+        tokens = tokenize_text(term)
+        if len(tokens) > 1:
+            raise ValueError("term must be a single token")
+        return tokens[0]
+
     def get_documents(self, term: str) -> list[int]:
         result = self.index.get(term.lower(), set())
         return sorted(result)
 
     def get_tf(self, doc_id: int, term: str):
-        tokens = tokenize_text(term)
-        if len(tokens) > 1:
-            raise ValueError("term must be a single token")
-        return self.term_frequencies.get(doc_id, Counter()).get(tokens[0], 0)
+        token = InvertedIndex.to_single_token(term)
+        return self.term_frequencies.get(doc_id, Counter()).get(token, 0)
 
     def get_idf(self, term: str):
-        tokens = tokenize_text(term)
-        if len(tokens) > 1:
-            raise ValueError("term must be a single token")
+        token = InvertedIndex.to_single_token(term)
         total_doc_count = len(self.docmap)
-        term_match_count = len(self.get_documents(tokens[0]))
+        term_match_count = len(self.get_documents(token))
         return math.log((total_doc_count + 1) / (term_match_count + 1))
 
     def get_tf_idf(self, doc_id: int, term: str):
         return self.get_tf(doc_id, term) * self.get_idf(term)
+
+    def get_bm25_idf(self, term: str) -> float:
+        token = InvertedIndex.to_single_token(term)
+        total_doc_count = len(self.docmap)
+        term_match_count = len(self.get_documents(token))
+        return math.log(
+            (total_doc_count - term_match_count + 0.5) / (term_match_count + 0.5) + 1
+        )
 
     def __add_documents(self, doc_id: int, text: str):
         tokens = tokenize_text(preprocess_text(text))
@@ -116,6 +127,10 @@ def idf_command(term: str) -> float:
 def tf_idf_command(doc_id: int, term: str) -> float:
     idx = InvertedIndex().load()
     return idx.get_tf_idf(doc_id, term)
+
+def bm25_idf_command(term: str) -> float:
+    idx = InvertedIndex().load()
+    return idx.get_bm25_idf(term)
 
 
 def title_contains_query(query: Iterable[str], title: Iterable[str]) -> bool:

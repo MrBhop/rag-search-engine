@@ -3,6 +3,7 @@
 import argparse
 
 from lib.keyword_search import (
+    bm25_idf_command,
     build_command,
     idf_command,
     search_command,
@@ -16,26 +17,33 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     search_parser = subparsers.add_parser("search", help="Search documents using BM25")
-    search_parser.add_argument("query", type=str, help="Search query")
+    _ = search_parser.add_argument("query", type=str, help="Search query")
 
     build_parser = subparsers.add_parser("build", help="Build the inverted index")
 
     tf_parser = subparsers.add_parser(
         "tf", help="Get term frequency for a given document ID and term"
     )
-    tf_parser.add_argument("doc_id", type=int, help="Document Id")
-    tf_parser.add_argument("term", type=str, help="Search term")
+    _ = tf_parser.add_argument("doc_id", type=int, help="Document Id")
+    _ = tf_parser.add_argument("term", type=str, help="Search term")
 
     idf_parser = subparsers.add_parser(
         "idf", help="Get inverse document frequency for a given term"
     )
-    idf_parser.add_argument("term", type=str, help="Search term")
+    _ = idf_parser.add_argument("term", type=str, help="Search term")
 
     tfidf_parser = subparsers.add_parser(
         "tfidf", help="Get TF-IDF score for a given document ID and term"
     )
-    tfidf_parser.add_argument("doc_id", type=int, help="Document Id")
-    tfidf_parser.add_argument("term", type=str, help="Search term")
+    _ = tfidf_parser.add_argument("doc_id", type=int, help="Document Id")
+    _ = tfidf_parser.add_argument("term", type=str, help="Search term")
+
+    bm25_idf_parser = subparsers.add_parser(
+        "bm25idf", help="Get BM25 IDF score for a given term"
+    )
+    _ = bm25_idf_parser.add_argument(
+        "term", type=str, help="Term to get BM25 IDF score for"
+    )
 
     args = parser.parse_args()
 
@@ -63,6 +71,10 @@ def main() -> None:
             print(
                 f"TF-IDF score of '{args.term}' in document '{args.doc_id}': {tf_idf:.2f}"
             )
+        case "bm25idf":
+            print("Checking BM25 idf score...")
+            bm25idf = bm25_idf_command(args.term)
+            print(f"BM25 IDF score of '{args.term}': {bm25idf:.2f}")
         case _:
             parser.print_help()
 
