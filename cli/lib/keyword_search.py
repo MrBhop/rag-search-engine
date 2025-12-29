@@ -161,7 +161,7 @@ def tokenize_text(text: str) -> list[str]:
     stop_words = load_stopwords()
 
     preprocessed = preprocess_text(text)
-    tokens = preprocessed.split(" ")
+    tokens = preprocessed.split()
     without_empty_tokens_and_stopwords = list(
         filter(lambda item: item != "" and item not in stop_words, tokens)
     )
