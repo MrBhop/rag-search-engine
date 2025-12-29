@@ -8,6 +8,7 @@ from collections.abc import Iterable
 from nltk.stem import PorterStemmer
 
 from .search_utils import (
+    BM25_K1,
     CACHE_PATH,
     DEFAULT_SEARCH_LIMIT,
     DOCMAP_PATH,
@@ -84,6 +85,10 @@ class InvertedIndex:
             (total_doc_count - term_match_count + 0.5) / (term_match_count + 0.5) + 1
         )
 
+    def get_bm25_tf(self, doc_id: int, term: str, k1: float = BM25_K1) -> float:
+        tf = self.get_tf(doc_id, term)
+        return (tf * (k1 + 1)) / (tf + k1)
+
     def __add_documents(self, doc_id: int, text: str):
         tokens = tokenize_text(preprocess_text(text))
 
@@ -128,9 +133,15 @@ def tf_idf_command(doc_id: int, term: str) -> float:
     idx = InvertedIndex().load()
     return idx.get_tf_idf(doc_id, term)
 
+
 def bm25_idf_command(term: str) -> float:
     idx = InvertedIndex().load()
     return idx.get_bm25_idf(term)
+
+
+def bm25_tf_command(doc_id: int, term: str, k1: float = BM25_K1) -> float:
+    idx = InvertedIndex().load()
+    return idx.get_bm25_tf(doc_id, term, k1)
 
 
 def title_contains_query(query: Iterable[str], title: Iterable[str]) -> bool:
