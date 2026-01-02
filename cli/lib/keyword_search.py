@@ -8,9 +8,11 @@ from collections.abc import Iterable
 from nltk.stem import PorterStemmer
 
 from .search_utils import (
+    BM25_B,
     BM25_K1,
     CACHE_PATH,
     DEFAULT_SEARCH_LIMIT,
+    DOC_LENGTH_PATH,
     DOCMAP_PATH,
     INDEX_PATH,
     TERM_FREQUENCIES_PATH,
@@ -25,6 +27,7 @@ class InvertedIndex:
         self.index: dict[str, set[int]] = defaultdict(set)
         self.docmap: dict[int, Movie] = {}
         self.term_frequencies: dict[int, Counter[str]] = defaultdict(Counter)
+        self.doc_lenghts: dict[int, int] = {}
 
     def build(self):
         movies = load_movies()
@@ -42,6 +45,8 @@ class InvertedIndex:
             pickle.dump(self.docmap, f)
         with open(TERM_FREQUENCIES_PATH, mode="wb") as f:
             pickle.dump(self.term_frequencies, f)
+        with open(DOC_LENGTH_PATH, mode="wb") as f:
+            pickle.dump(self.doc_lenghts, f)
         return self
 
     def load(self):
@@ -51,6 +56,8 @@ class InvertedIndex:
             self.docmap = pickle.load(f)
         with open(TERM_FREQUENCIES_PATH, mode="rb") as f:
             self.term_frequencies = pickle.load(f)
+        with open(DOC_LENGTH_PATH, mode="rb") as f:
+            self.doc_lenghts = pickle.load(f)
         return self
 
     @staticmethod
@@ -85,16 +92,34 @@ class InvertedIndex:
             (total_doc_count - term_match_count + 0.5) / (term_match_count + 0.5) + 1
         )
 
-    def get_bm25_tf(self, doc_id: int, term: str, k1: float = BM25_K1) -> float:
+    def get_bm25_tf(
+        self, doc_id: int, term: str, k1: float = BM25_K1, b: float = BM25_B
+    ) -> float:
         tf = self.get_tf(doc_id, term)
-        return (tf * (k1 + 1)) / (tf + k1)
+        avg_length = self.__get_avg_doc_length()
+        if avg_length > 0:
+            length_norm = (
+                1 - b + b * (self.doc_lenghts[doc_id] / avg_length)
+            )
+        else:
+            length_norm = 1
+        return (tf * (k1 + 1)) / (tf + k1 * length_norm)
 
     def __add_documents(self, doc_id: int, text: str):
-        tokens = tokenize_text(preprocess_text(text))
+        tokens = tokenize_text(text)
 
         for token in set(tokens):
             self.index[token].add(doc_id)
         self.term_frequencies[doc_id].update(tokens)
+        self.doc_lenghts[doc_id] = len(tokens)
+
+    def __get_avg_doc_length(self) -> float:
+        if len(self.doc_lenghts) == 0:
+            return 0
+        total = 0
+        for length in self.doc_lenghts.values():
+            total += length
+        return total / len(self.doc_lenghts)
 
 
 def build_command():
@@ -139,9 +164,11 @@ def bm25_idf_command(term: str) -> float:
     return idx.get_bm25_idf(term)
 
 
-def bm25_tf_command(doc_id: int, term: str, k1: float = BM25_K1) -> float:
+def bm25_tf_command(
+    doc_id: int, term: str, k1: float = BM25_K1, b: float = BM25_B
+) -> float:
     idx = InvertedIndex().load()
-    return idx.get_bm25_tf(doc_id, term, k1)
+    return idx.get_bm25_tf(doc_id, term, k1, b)
 
 
 def title_contains_query(query: Iterable[str], title: Iterable[str]) -> bool:
