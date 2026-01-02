@@ -16,6 +16,7 @@ from .search_utils import (
     DOCMAP_PATH,
     INDEX_PATH,
     TERM_FREQUENCIES_PATH,
+    FormattedSearchResult,
     Movie,
     load_movies,
     load_stopwords,
@@ -105,6 +106,24 @@ class InvertedIndex:
             length_norm = 1
         return (tf * (k1 + 1)) / (tf + k1 * length_norm)
 
+    def bm25(self, doc_id: int, term: str) -> float:
+        tf = self.get_bm25_tf(doc_id, term)
+        idf = self.get_bm25_idf(term)
+        return tf * idf
+
+    def bm25_search(self, query: str, limit: int = DEFAULT_SEARCH_LIMIT):
+        query_tokens = tokenize_text(query)
+
+        scores: dict[int, float] = {}
+        for doc_id in self.docmap:
+            total_score = 0
+            for token in query_tokens:
+                total_score += self.bm25(doc_id, token)
+            scores[doc_id] = total_score
+
+        sorted_result_ids = sorted(scores.keys(), key=lambda id: scores[id], reverse=True)
+        return map(lambda doc_id: FormattedSearchResult.from_movie(scores[doc_id], self.docmap[doc_id]), sorted_result_ids[:limit])
+
     def __add_documents(self, doc_id: int, text: str):
         tokens = tokenize_text(text)
 
@@ -169,6 +188,11 @@ def bm25_tf_command(
 ) -> float:
     idx = InvertedIndex().load()
     return idx.get_bm25_tf(doc_id, term, k1, b)
+
+
+def bm25serach_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT):
+    idx = InvertedIndex().load()
+    return idx.bm25_search(query, limit)
 
 
 def title_contains_query(query: Iterable[str], title: Iterable[str]) -> bool:
