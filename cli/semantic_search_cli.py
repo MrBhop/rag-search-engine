@@ -2,9 +2,9 @@
 
 import argparse
 
-from lib.search_utils import DEFAULT_SEARCH_LIMIT
+from lib.search_utils import CHUNK_SIZE_DEFAULT, DEFAULT_SEARCH_LIMIT
 from lib.semantic_search import (
-    SemanticSerach,
+    chunk_command,
     embed_query_text,
     embed_text,
     semantic_search,
@@ -46,6 +46,17 @@ def main():
         help="Number of results to return",
     )
 
+    chunk_parser = subparsers.add_parser(
+        "chunk", help="Split text into fixed-size chunks"
+    )
+    _ = chunk_parser.add_argument("text", type=str, help="Text to chunk")
+    _ = chunk_parser.add_argument(
+        "--chunk-size",
+        type=int,
+        help="Size of each chunk in words",
+        default=CHUNK_SIZE_DEFAULT,
+    )
+
     args = parser.parse_args()
 
     match args.command:
@@ -59,6 +70,8 @@ def main():
             embed_query_text(args.query)
         case "search":
             semantic_search(args.query, args.limit)
+        case "chunk":
+            chunk_command(args.text, args.chunk_size)
         case _:
             parser.print_help()
 

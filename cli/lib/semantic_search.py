@@ -5,6 +5,7 @@ from numpy.typing import ArrayLike
 from sentence_transformers import SentenceTransformer
 
 from lib.search_utils import (
+    CHUNK_SIZE_DEFAULT,
     DEFAULT_SEARCH_LIMIT,
     MOVIE_EMBEDDINGS_PATH,
     Document,
@@ -137,3 +138,23 @@ def semantic_search(query: str, limit: int = DEFAULT_SEARCH_LIMIT):
         print(f"{i}. {doc.title} (score: {doc.score:.4f})")
         print(f"\t{doc.document[:100]}...")
         print()
+
+
+def fixed_size_chunking(text: str, chunk_size: int = CHUNK_SIZE_DEFAULT) -> list[str]:
+    words = text.split()
+    output: list[str] = []
+
+    while len(words) > chunk_size:
+        output.append(" ".join(words[:chunk_size]))
+        words = words[chunk_size:]
+    output.append(" ".join(words))
+
+    return output
+
+
+def chunk_command(text: str, chunk_size: int = CHUNK_SIZE_DEFAULT) -> None:
+    chunks = fixed_size_chunking(text, chunk_size)
+
+    print(f"Chunking {len(text)} characters")
+    for i, line in enumerate(chunks, 1):
+        print(f"{i}. {line}")
