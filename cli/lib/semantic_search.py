@@ -1,9 +1,16 @@
 import os
 import numpy as np
 
+from numpy.typing import ArrayLike
 from sentence_transformers import SentenceTransformer
 
-from lib.search_utils import MOVIE_EMBEDDINGS_PATH, Document, load_movies
+from lib.search_utils import (
+    DEFAULT_SEARCH_LIMIT,
+    MOVIE_EMBEDDINGS_PATH,
+    Document,
+    FormattedSearchResult,
+    load_movies,
+)
 
 
 class SemanticSerach:
@@ -47,6 +54,42 @@ class SemanticSerach:
 
         return self.build_embeddings(documents)
 
+    def search(self, query: str, limit: int = DEFAULT_SEARCH_LIMIT):
+        if self.embeddings is None or self.embeddings.size == 0:
+            raise ValueError(
+                "No embeddings loaded. Call `load_or_create_embeddings` first."
+            )
+
+        if len(self.documents) == 0:
+            raise ValueError(
+                "No documents loaded. Call `load_or_create_embeddings` first."
+            )
+
+        query_embedding = self.generate_embedding(query.strip())
+
+        scores: list[tuple[float, Document]] = []
+        for i, doc_embedding in enumerate(self.embeddings):
+            score = cosine_similarity(query_embedding, doc_embedding)
+            scores.append((score, self.documents[i]))
+
+        scores.sort(key=lambda item: item[0], reverse=True)
+
+        return map(
+            lambda item: FormattedSearchResult.from_document(item[0], item[1]),
+            scores[:limit],
+        )
+
+
+def cosine_similarity(vec1: ArrayLike, vec2: ArrayLike) -> float:
+    dot_product = np.dot(vec1, vec2)
+    norm1 = np.linalg.norm(vec1)
+    norm2 = np.linalg.norm(vec2)
+
+    if norm1 == 0 or norm2 == 0:
+        return 0.0
+
+    return dot_product / (norm1 * norm2)
+
 
 def verify_model():
     search = SemanticSerach()
@@ -78,3 +121,19 @@ def embed_query_text(query: str):
     print(f"Query: {query}")
     print(f"First 5 dimensions: {embedding[:5]}")
     print(f"Shape: {embedding.shape}")
+
+
+def semantic_search(query: str, limit: int = DEFAULT_SEARCH_LIMIT):
+    search = SemanticSerach()
+    movies = load_movies()
+    _ = search.load_or_create_embeddings(movies)
+
+    results = list(search.search(query, limit))
+
+    print(f"Query: {query}")
+    print(f"Top {len(results)} reults:")
+    print()
+    for i, doc in enumerate(results, 1):
+        print(f"{i}. {doc.title} (score: {doc.score:.4f})")
+        print(f"\t{doc.document[:100]}...")
+        print()
