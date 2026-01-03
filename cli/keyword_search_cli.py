@@ -81,8 +81,8 @@ def main() -> None:
         case "search":
             print("Searching for:", args.query)
             results = search_command(args.query)
-            for i, movie in enumerate(results, 1):
-                print(f"{i}. ({movie.id}) {movie.title}")
+            for i, doc in enumerate(results, 1):
+                print(f"{i}. ({doc.id}) {doc.title}")
         case "tf":
             print("Checking term frequency...")
             tf = tf_command(args.doc_id, args.term)

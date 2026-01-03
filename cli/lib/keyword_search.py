@@ -17,7 +17,7 @@ from .search_utils import (
     INDEX_PATH,
     TERM_FREQUENCIES_PATH,
     FormattedSearchResult,
-    Movie,
+    Document,
     load_movies,
     load_stopwords,
 )
@@ -26,16 +26,16 @@ from .search_utils import (
 class InvertedIndex:
     def __init__(self) -> None:
         self.index: dict[str, set[int]] = defaultdict(set)
-        self.docmap: dict[int, Movie] = {}
+        self.docmap: dict[int, Document] = {}
         self.term_frequencies: dict[int, Counter[str]] = defaultdict(Counter)
         self.doc_lenghts: dict[int, int] = {}
 
     def build(self):
-        movies = load_movies()
+        documents = load_movies()
 
-        for m in movies:
-            self.docmap[m.id] = m
-            self.__add_documents(m.id, f"{m.title} {m.description}")
+        for doc in documents:
+            self.docmap[doc.id] = doc
+            self.__add_documents(doc.id, f"{doc.title} {doc.description}")
         return self
 
     def save(self):
@@ -99,9 +99,7 @@ class InvertedIndex:
         tf = self.get_tf(doc_id, term)
         avg_length = self.__get_avg_doc_length()
         if avg_length > 0:
-            length_norm = (
-                1 - b + b * (self.doc_lenghts[doc_id] / avg_length)
-            )
+            length_norm = 1 - b + b * (self.doc_lenghts[doc_id] / avg_length)
         else:
             length_norm = 1
         return (tf * (k1 + 1)) / (tf + k1 * length_norm)
@@ -121,8 +119,15 @@ class InvertedIndex:
                 total_score += self.bm25(doc_id, token)
             scores[doc_id] = total_score
 
-        sorted_result_ids = sorted(scores.keys(), key=lambda id: scores[id], reverse=True)
-        return map(lambda doc_id: FormattedSearchResult.from_movie(scores[doc_id], self.docmap[doc_id]), sorted_result_ids[:limit])
+        sorted_result_ids = sorted(
+            scores.keys(), key=lambda id: scores[id], reverse=True
+        )
+        return map(
+            lambda doc_id: FormattedSearchResult.from_document(
+                scores[doc_id], self.docmap[doc_id]
+            ),
+            sorted_result_ids[:limit],
+        )
 
     def __add_documents(self, doc_id: int, text: str):
         tokens = tokenize_text(text)
@@ -146,21 +151,21 @@ def build_command():
     _ = InvertedIndex().build().save()
 
 
-def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> Iterable[Movie]:
+def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> Iterable[Document]:
     idx = InvertedIndex().load()
     query_tokens = tokenize_text(query)
 
-    movie_ids: set[int] = set()
+    result_ids: set[int] = set()
     for token in query_tokens:
-        doc_ids = idx.get_documents(token)
-        for id in doc_ids:
-            movie_ids.add(id)
-            if len(movie_ids) >= limit:
+        matching_doc_ids = idx.get_documents(token)
+        for id in matching_doc_ids:
+            result_ids.add(id)
+            if len(result_ids) >= limit:
                 break
-        if len(movie_ids) >= limit:
+        if len(result_ids) >= limit:
             break
 
-    return map(lambda id: idx.docmap[id], sorted(movie_ids))
+    return map(lambda id: idx.docmap[id], sorted(result_ids))
 
 
 def tf_command(doc_id: int, term: str) -> int:

@@ -3,22 +3,22 @@ import numpy as np
 
 from sentence_transformers import SentenceTransformer
 
-from lib.search_utils import MOVIE_EMBEDDINGS_PATH, Movie, load_movies
+from lib.search_utils import MOVIE_EMBEDDINGS_PATH, Document, load_movies
 
 
 class SemanticSerach:
     def __init__(self, model_name: str = "all-MiniLM-L6-v2") -> None:
         self.model: SentenceTransformer = SentenceTransformer(model_name)
         self.embeddings = None
-        self.documents: list[Movie] = []
-        self.document_map: dict[int, Movie] = {}
+        self.documents: list[Document] = []
+        self.document_map: dict[int, Document] = {}
 
     def generate_embedding(self, text: str):
         if text.strip() == "":
             raise ValueError("cannot generate embedding for empty text")
         return self.model.encode(text)
 
-    def build_embeddings(self, documents: list[Movie]):
+    def build_embeddings(self, documents: list[Document]):
         self.documents = documents
         self.document_map = {}
 
@@ -32,7 +32,7 @@ class SemanticSerach:
         np.save(MOVIE_EMBEDDINGS_PATH, self.embeddings)
         return self.embeddings
 
-    def load_or_create_embeddings(self, documents: list[Movie]):
+    def load_or_create_embeddings(self, documents: list[Document]):
         self.documents = documents
         self.document_map = {}
 

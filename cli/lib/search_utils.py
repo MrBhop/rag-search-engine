@@ -24,20 +24,20 @@ MOVIE_EMBEDDINGS_PATH = os.path.join(CACHE_PATH, "movie_embeddings.npy")
 
 
 @dataclass
-class Movie:
+class Document:
     id: int
     title: str
     description: str
 
     @staticmethod
     def from_dict(d: dict[str, str]):
-        return Movie(int(d["id"]), d["title"], d["description"])
+        return Document(int(d["id"]), d["title"], d["description"])
 
 
-def load_movies() -> list[Movie]:
+def load_movies() -> list[Document]:
     with open(MOVIES_PATH, "r") as f:
         data = json.load(f)
-    output = map(Movie.from_dict, data["movies"])
+    output = map(Document.from_dict, data["movies"])
     return list(output)
 
 
@@ -55,5 +55,7 @@ class FormattedSearchResult:
     metadata: dict[str, Any]
 
     @staticmethod
-    def from_movie(score: float, doc: Movie, **metadata: Any):
-        return FormattedSearchResult(str(doc.id), doc.title, doc.description, score, metadata if metadata else {})
+    def from_document(score: float, doc: Document, **metadata: Any):
+        return FormattedSearchResult(
+            str(doc.id), doc.title, doc.description, score, metadata if metadata else {}
+        )
