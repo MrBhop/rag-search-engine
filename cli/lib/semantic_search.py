@@ -5,9 +5,10 @@ from numpy.typing import ArrayLike
 from sentence_transformers import SentenceTransformer
 
 from lib.search_utils import (
-    CHUNK_SIZE_DEFAULT,
+    DEFAULT_CHUNK_SIZE,
     DEFAULT_SEARCH_LIMIT,
     MOVIE_EMBEDDINGS_PATH,
+    DEFAULT_CHUNK_OVERLAP,
     Document,
     FormattedSearchResult,
     load_movies,
@@ -140,20 +141,29 @@ def semantic_search(query: str, limit: int = DEFAULT_SEARCH_LIMIT):
         print()
 
 
-def fixed_size_chunking(text: str, chunk_size: int = CHUNK_SIZE_DEFAULT) -> list[str]:
+def fixed_size_chunking(
+    text: str,
+    chunk_size: int = DEFAULT_CHUNK_SIZE,
+    overlap: int = DEFAULT_CHUNK_OVERLAP,
+) -> list[str]:
     words = text.split()
     output: list[str] = []
 
     while len(words) > chunk_size:
         output.append(" ".join(words[:chunk_size]))
-        words = words[chunk_size:]
-    output.append(" ".join(words))
+        words = words[chunk_size - overlap :]
+    if not output or len(words) >= overlap:
+        output.append(" ".join(words))
 
     return output
 
 
-def chunk_command(text: str, chunk_size: int = CHUNK_SIZE_DEFAULT) -> None:
-    chunks = fixed_size_chunking(text, chunk_size)
+def chunk_command(
+    text: str,
+    chunk_size: int = DEFAULT_CHUNK_SIZE,
+    overlap: int = DEFAULT_CHUNK_OVERLAP,
+) -> None:
+    chunks = fixed_size_chunking(text, chunk_size, overlap)
 
     print(f"Chunking {len(text)} characters")
     for i, line in enumerate(chunks, 1):
