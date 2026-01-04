@@ -3,6 +3,8 @@ import json
 import os
 from typing import Any
 
+DEFAULT_MODEL_NAME = "all-MiniLM-L6-v2"
+
 DEFAULT_SEARCH_LIMIT = 5
 SCORE_PRECISION = 3
 
@@ -25,6 +27,8 @@ DOCMAP_PATH = os.path.join(CACHE_PATH, "docmap.pkl")
 TERM_FREQUENCIES_PATH = os.path.join(CACHE_PATH, "term_frequencies.pkl")
 DOC_LENGTH_PATH = os.path.join(CACHE_PATH, "doc_lenghts.pkl")
 MOVIE_EMBEDDINGS_PATH = os.path.join(CACHE_PATH, "movie_embeddings.npy")
+CHUNK_EMBEDDINGS_PATH = os.path.join(CACHE_PATH, "chunk_embeddings.npy")
+CHUNK_METADATA_PATH = os.path.join(CACHE_PATH, "chunk_metadata.json")
 
 
 @dataclass
