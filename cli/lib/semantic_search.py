@@ -2,11 +2,13 @@ import os
 import numpy as np
 
 from numpy.typing import ArrayLike
+import re
 from sentence_transformers import SentenceTransformer
 
 from lib.search_utils import (
-    DEFAULT_CHUNK_SIZE,
+    DEFAULT_FIXED_CHUNK_SIZE,
     DEFAULT_SEARCH_LIMIT,
+    DEFAULT_SEMANTIC_CHUNK_SIZE,
     MOVIE_EMBEDDINGS_PATH,
     DEFAULT_CHUNK_OVERLAP,
     Document,
@@ -141,30 +143,56 @@ def semantic_search(query: str, limit: int = DEFAULT_SEARCH_LIMIT):
         print()
 
 
-def fixed_size_chunking(
-    text: str,
-    chunk_size: int = DEFAULT_CHUNK_SIZE,
-    overlap: int = DEFAULT_CHUNK_OVERLAP,
-) -> list[str]:
-    words = text.split()
+def join_chunks(filler: str, chunks: list[str], chunk_size: int, overlap: int):
+    """Reduces a list of chunks into a new list of chunks, with the specified size and overlap."""
     output: list[str] = []
 
-    while len(words) > chunk_size:
-        output.append(" ".join(words[:chunk_size]))
-        words = words[chunk_size - overlap :]
-    if not output or len(words) >= overlap:
-        output.append(" ".join(words))
+    while len(chunks) > chunk_size:
+        output.append(filler.join(chunks[:chunk_size]))
+        chunks = chunks[chunk_size - overlap :]
+    if not output or len(chunks) >= overlap:
+        output.append(filler.join(chunks))
 
     return output
 
 
+def fixed_size_chunking(
+    text: str,
+    chunk_size: int = DEFAULT_FIXED_CHUNK_SIZE,
+    overlap: int = DEFAULT_CHUNK_OVERLAP,
+) -> list[str]:
+    words = text.split()
+    return join_chunks(" ", words, chunk_size, overlap)
+
+
+def semantic_chunking(
+    text: str,
+    max_chunk_size: int = DEFAULT_SEMANTIC_CHUNK_SIZE,
+    overlap: int = DEFAULT_CHUNK_OVERLAP,
+):
+    parts = re.split(r"(?<=[.!?])\s+", text)
+    return join_chunks(" ", parts, max_chunk_size, overlap)
+
+
 def chunk_command(
     text: str,
-    chunk_size: int = DEFAULT_CHUNK_SIZE,
+    chunk_size: int = DEFAULT_FIXED_CHUNK_SIZE,
     overlap: int = DEFAULT_CHUNK_OVERLAP,
 ) -> None:
     chunks = fixed_size_chunking(text, chunk_size, overlap)
 
     print(f"Chunking {len(text)} characters")
+    for i, line in enumerate(chunks, 1):
+        print(f"{i}. {line}")
+
+
+def semantic_chunk_text(
+    text: str,
+    max_chunk_size: int = DEFAULT_SEMANTIC_CHUNK_SIZE,
+    overlap: int = DEFAULT_CHUNK_OVERLAP,
+):
+    chunks = semantic_chunking(text, max_chunk_size, overlap)
+
+    print(f"Semantically chunking {len(text)} characters")
     for i, line in enumerate(chunks, 1):
         print(f"{i}. {line}")
