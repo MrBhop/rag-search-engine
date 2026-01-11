@@ -1,6 +1,6 @@
 import os
 
-from cli.lib.search_utils import Document
+from lib.search_utils import Document
 
 from .keyword_search import InvertedIndex
 from .semantic_search import ChunkedSemanticSearch
@@ -24,3 +24,23 @@ class HybridSearch:
 
     def rrf_search(self, query, k, limit=10):
         raise NotImplementedError("RRF hybrid search is not implemented yet.")
+
+
+def normalize_scores(values: list[float]):
+    min_value = min(values)
+    max_value = max(values)
+
+    if min_value == max_value:
+        normalized_values = map(lambda _: 1, values)
+    else:
+        normalized_values = map(
+            lambda score: (score - min_value) / (max_value - min_value), values
+        )
+
+    return list(normalized_values)
+
+
+def normalize_command(values: list[float]):
+    normalized = normalize_scores(values)
+    for value in normalized:
+        print(f"* {value:.4f}")
