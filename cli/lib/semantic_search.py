@@ -1,26 +1,25 @@
-from dataclasses import dataclass
 import json
 import os
-import numpy as np
-
-from numpy.typing import ArrayLike
 import re
-from sentence_transformers import SentenceTransformer
-from transformers.integrations.executorch import TorchExportableModuleWithHybridCache
 
+import numpy as np
 from lib.search_utils import (
     CHUNK_EMBEDDINGS_PATH,
     CHUNK_METADATA_PATH,
+    DEFAULT_CHUNK_OVERLAP,
     DEFAULT_FIXED_CHUNK_SIZE,
     DEFAULT_MODEL_NAME,
+    DEFAULT_PEVIEW_LENGTH,
     DEFAULT_SEARCH_LIMIT,
     DEFAULT_SEMANTIC_CHUNK_SIZE,
     MOVIE_EMBEDDINGS_PATH,
-    DEFAULT_CHUNK_OVERLAP,
+    SCORE_PRECISION,
     Document,
     FormattedSearchResult,
     load_movies,
 )
+from numpy.typing import ArrayLike
+from sentence_transformers import SentenceTransformer
 
 
 class SemanticSearch:
@@ -90,13 +89,6 @@ class SemanticSearch:
         )
 
 
-@dataclass
-class DocumentMetaData:
-    movie_idx: int
-    chunk_idx: int
-    total_chunks: int
-
-
 class ChunkedSemanticSearch(SemanticSearch):
     def __init__(self, model_name=DEFAULT_MODEL_NAME) -> None:
         super().__init__(model_name)
@@ -109,7 +101,7 @@ class ChunkedSemanticSearch(SemanticSearch):
 
         chunk_metadata: list[dict[str, int]] = []
         all_chunks: list[str] = []
-        for doc in self.documents:
+        for i, doc in enumerate(self.documents):
             self.document_map[doc.id] = doc
 
             if doc.description == "":
@@ -120,7 +112,7 @@ class ChunkedSemanticSearch(SemanticSearch):
                 all_chunks.append(chunk)
                 chunk_metadata.append(
                     {
-                        "movie_idx": len(self.documents),
+                        "movie_idx": i,
                         "chunk_idx": len(all_chunks) - 1,
                         "total_chunks": len(chunks),
                     }
@@ -154,6 +146,49 @@ class ChunkedSemanticSearch(SemanticSearch):
             return self.chunk_embeddings
 
         return self.build_chunk_embeddings(documents)
+
+    def search_chunks(self, query: str, limit: int = 10):
+        if self.chunk_embeddings is None:
+            raise ValueError(
+                "No embeddings loaded. Call 'load_or_create_chunk_embeddings' first."
+            )
+
+        query_embedding = self.generate_embedding(query.strip())
+
+        chunk_scores = []
+        movie_scores = {}
+        for i, doc_embedding in enumerate(self.chunk_embeddings):
+            similarity = cosine_similarity(query_embedding, doc_embedding)
+            metadata = self.chunk_metadata[i]
+            movie_idx = metadata["movie_idx"]
+            chunk_scores.append(
+                {
+                    "chunk_idx": metadata["chunk_idx"],
+                    "movie_idx": movie_idx,
+                    "score": similarity,
+                }
+            )
+
+            if movie_scores.get(movie_idx, float("-inf")) < similarity:
+                movie_scores[movie_idx] = similarity
+
+        sorted_movie_indices = sorted(
+            movie_scores.keys(), key=lambda idx: movie_scores[idx], reverse=True
+        )
+
+        def convert_to_dict(movie_idx):
+            score = movie_scores[movie_idx]
+            doc = self.documents[movie_idx]
+
+            return {
+                "id": doc.id,
+                "title": doc.title,
+                "document": doc.description[:DEFAULT_PEVIEW_LENGTH],
+                "score": round(score, SCORE_PRECISION),
+            }
+
+        output = map(convert_to_dict, sorted_movie_indices[:limit])
+        return output
 
 
 def cosine_similarity(vec1: ArrayLike, vec2: ArrayLike) -> float:
@@ -275,3 +310,14 @@ def embed_chunks_command():
     movies = load_movies()
     embeddings = search.load_or_create_chunk_embeddings(movies)
     print(f"Generated {len(embeddings)} chunked embeddings")
+
+
+def search_chunked_command(query: str, limit: int = 10):
+    search = ChunkedSemanticSearch()
+    movies = load_movies()
+    _ = search.load_or_create_chunk_embeddings(movies)
+
+    results = search.search_chunks(query, limit)
+    for i, result in enumerate(results, 1):
+        print(f"\n{i}. {result['title']} (score: {result['score']:.4f})")
+        print(f"   {result['document']}...")
