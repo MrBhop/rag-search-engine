@@ -29,6 +29,7 @@ class InvertedIndex:
         self.docmap: dict[int, Document] = {}
         self.term_frequencies: dict[int, Counter[str]] = defaultdict(Counter)
         self.doc_lenghts: dict[int, int] = {}
+        self.index_path: str = INDEX_PATH
 
     def build(self):
         documents = load_movies()
@@ -40,7 +41,7 @@ class InvertedIndex:
 
     def save(self):
         os.makedirs(CACHE_PATH, exist_ok=True)
-        with open(INDEX_PATH, mode="wb") as f:
+        with open(self.index_path, mode="wb") as f:
             pickle.dump(self.index, f)
         with open(DOCMAP_PATH, mode="wb") as f:
             pickle.dump(self.docmap, f)
@@ -51,7 +52,7 @@ class InvertedIndex:
         return self
 
     def load(self):
-        with open(INDEX_PATH, mode="rb") as f:
+        with open(self.index_path, mode="rb") as f:
             self.index = pickle.load(f)
         with open(DOCMAP_PATH, mode="rb") as f:
             self.docmap = pickle.load(f)
