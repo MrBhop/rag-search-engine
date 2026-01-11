@@ -255,10 +255,12 @@ def join_chunks(filler: str, chunks: list[str], chunk_size: int, overlap: int):
     output: list[str] = []
 
     while len(chunks) > chunk_size:
-        output.append(filler.join(chunks[:chunk_size]))
+        output.append(filler.join(chunks[:chunk_size]).strip())
         chunks = chunks[chunk_size - overlap :]
     if not output or len(chunks) >= overlap:
-        output.append(filler.join(chunks))
+        leftover = filler.join(chunks).strip()
+        if leftover != "":
+            output.append(leftover)
 
     return output
 
@@ -277,7 +279,7 @@ def semantic_chunk(
     max_chunk_size: int = DEFAULT_SEMANTIC_CHUNK_SIZE,
     overlap: int = DEFAULT_CHUNK_OVERLAP,
 ):
-    parts = re.split(r"(?<=[.!?])\s+", text)
+    parts = re.split(r"(?<=[.!?])\s+", text.strip())
     return join_chunks(" ", parts, max_chunk_size, overlap)
 
 
