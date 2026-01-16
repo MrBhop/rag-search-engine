@@ -176,18 +176,13 @@ class ChunkedSemanticSearch(SemanticSearch):
             movie_scores.keys(), key=lambda idx: movie_scores[idx], reverse=True
         )
 
-        def convert_to_dict(movie_idx):
-            score = movie_scores[movie_idx]
+        def generate_formatted_search_result(movie_idx):
+            score = round(movie_scores[movie_idx], SCORE_PRECISION)
             doc = self.documents[movie_idx]
 
-            return {
-                "id": doc.id,
-                "title": doc.title,
-                "document": doc.description[:DEFAULT_PEVIEW_LENGTH],
-                "score": round(score, SCORE_PRECISION),
-            }
+            return FormattedSearchResult.from_document(score, doc)
 
-        output = map(convert_to_dict, sorted_movie_indices[:limit])
+        output = list(map(generate_formatted_search_result, sorted_movie_indices[:limit]))
         return output
 
 
@@ -321,5 +316,5 @@ def search_chunked_command(query: str, limit: int = 10):
 
     results = search.search_chunks(query, limit)
     for i, result in enumerate(results, 1):
-        print(f"\n{i}. {result['title']} (score: {result['score']:.4f})")
-        print(f"   {result['document']}...")
+        print(f"\n{i}. {result.title} (score: {result.score:.4f})")
+        print(f"   {result.document[:DEFAULT_PEVIEW_LENGTH]}...")

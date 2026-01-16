@@ -123,12 +123,12 @@ class InvertedIndex:
         sorted_result_ids = sorted(
             scores.keys(), key=lambda id: scores[id], reverse=True
         )
-        return map(
+        return list(map(
             lambda doc_id: FormattedSearchResult.from_document(
                 scores[doc_id], self.docmap[doc_id]
             ),
             sorted_result_ids[:limit],
-        )
+        ))
 
     def __add_documents(self, doc_id: int, text: str):
         tokens = tokenize_text(text)
