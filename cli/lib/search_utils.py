@@ -3,7 +3,7 @@ import json
 import os
 from typing import Any
 
-DEFAULT_MODEL_NAME = "all-MiniLM-L6-v2"
+DEFAULT_EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 
 DEFAULT_ALPHA = 0.5
 RRF_K = 60

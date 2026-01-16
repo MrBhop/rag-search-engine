@@ -8,7 +8,7 @@ from lib.search_utils import (
     CHUNK_METADATA_PATH,
     DEFAULT_CHUNK_OVERLAP,
     DEFAULT_FIXED_CHUNK_SIZE,
-    DEFAULT_MODEL_NAME,
+    DEFAULT_EMBEDDING_MODEL_NAME,
     DEFAULT_PEVIEW_LENGTH,
     DEFAULT_SEARCH_LIMIT,
     DEFAULT_SEMANTIC_CHUNK_SIZE,
@@ -23,7 +23,7 @@ from sentence_transformers import SentenceTransformer
 
 
 class SemanticSearch:
-    def __init__(self, model_name: str = DEFAULT_MODEL_NAME) -> None:
+    def __init__(self, model_name: str = DEFAULT_EMBEDDING_MODEL_NAME) -> None:
         self.model: SentenceTransformer = SentenceTransformer(model_name)
         self.embeddings = None
         self.documents: list[Document] = []
@@ -90,7 +90,7 @@ class SemanticSearch:
 
 
 class ChunkedSemanticSearch(SemanticSearch):
-    def __init__(self, model_name=DEFAULT_MODEL_NAME) -> None:
+    def __init__(self, model_name=DEFAULT_EMBEDDING_MODEL_NAME) -> None:
         super().__init__(model_name)
         self.chunk_embeddings = None
         self.chunk_metadata: list[dict[str, int]] = []

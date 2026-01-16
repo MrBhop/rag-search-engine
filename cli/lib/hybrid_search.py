@@ -1,7 +1,15 @@
 from collections import defaultdict
 import os
 
-from lib.search_utils import RRF_K, DEFAULT_PEVIEW_LENGTH, DEFAULT_SEARCH_LIMIT, Document, FormattedSearchResult, load_movies
+from lib.query_enhancement import enhance_query
+from lib.search_utils import (
+    RRF_K,
+    DEFAULT_PEVIEW_LENGTH,
+    DEFAULT_SEARCH_LIMIT,
+    Document,
+    FormattedSearchResult,
+    load_movies,
+)
 
 from .keyword_search import InvertedIndex
 from .semantic_search import ChunkedSemanticSearch
@@ -26,9 +34,10 @@ class HybridSearch:
         bm25_normalized = normalize_scores(bm25_scores)
 
         semantic_results = self.semantic_search.search_chunks(query, 500 * limit)
-        semantic_scores: list[float] = list(map(lambda item: item.score, semantic_results))
+        semantic_scores: list[float] = list(
+            map(lambda item: item.score, semantic_results)
+        )
         semantic_normalized = normalize_scores(semantic_scores)
-
 
         document_mappings = defaultdict(dict)
         for index, item in enumerate(bm25_results, 0):
@@ -48,9 +57,16 @@ class HybridSearch:
             bm25_score = doc.get("bm25_score", 0)
             semantic_score = doc.get("semantic_score", 0)
 
-            document_mappings[key]["hybrid_score"] = hybrid_score(bm25_score, semantic_score, alpha)
+            document_mappings[key]["hybrid_score"] = hybrid_score(
+                bm25_score, semantic_score, alpha
+            )
 
-        sorted_results = sorted(document_mappings, key=lambda item: document_mappings[item]["hybrid_score"], reverse=True)
+        sorted_results = sorted(
+            document_mappings,
+            key=lambda item: document_mappings[item]["hybrid_score"],
+            reverse=True,
+        )
+
         def generate_formatted_search_result(key):
             doc = document_mappings[key]
 
@@ -59,15 +75,26 @@ class HybridSearch:
                 doc["title"],
                 doc["description"],
                 doc["hybrid_score"],
-                {"bm25_score":doc["bm25_score"],
-                 "semantic_score":doc["semantic_score"],
-                 },
+                {
+                    "bm25_score": doc["bm25_score"],
+                    "semantic_score": doc["semantic_score"],
+                },
             )
 
         results = list(map(generate_formatted_search_result, sorted_results[:limit]))
         return results
 
-    def rrf_search(self, query: str, k: int = RRF_K, limit: int = DEFAULT_SEARCH_LIMIT):
+    def rrf_search(
+        self,
+        query: str,
+        k: int = RRF_K,
+        limit: int = DEFAULT_SEARCH_LIMIT,
+        enhance: str | None = None,
+    ):
+        enhanced_query = enhance_query(query, enhance)
+        if enhanced_query != query:
+            print(f"Enhanced query ({enhance}): '{query}' -> '{enhanced_query}'\n")
+            query = enhanced_query
         bm25_results = self._bm25_search(query, 500 * limit)
         semantic_results = self.semantic_search.search_chunks(query, 500 * limit)
 
@@ -90,7 +117,11 @@ class HybridSearch:
             document_mappings[semantic_item.id]["description"] = semantic_item.document
             document_mappings[semantic_item.id]["semantic_rank"] = rank
 
-        sorted_keys = sorted(document_mappings.keys(), key=lambda doc_id: document_mappings[doc_id]["score"], reverse=True)
+        sorted_keys = sorted(
+            document_mappings.keys(),
+            key=lambda doc_id: document_mappings[doc_id]["score"],
+            reverse=True,
+        )
 
         def generate_formatted_search_result(key):
             doc = document_mappings[key]
@@ -107,6 +138,7 @@ class HybridSearch:
 
         results = list(map(generate_formatted_search_result, sorted_keys[:limit]))
         return results
+
 
 def normalize_scores(values: list[float]):
     min_value = min(values)
@@ -142,16 +174,23 @@ def weighted_search_command(
     for index, item in enumerate(results, 1):
         print(f"{index}. {item.title}")
         print(f"\tHybrid Score: {item.score:.3f}")
-        print(f"\tBM25: {item.metadata["bm25_score"]:.3f}, Semantic: {item.metadata["semantic_score"]:.3f}")
+        print(
+            f"\tBM25: {item.metadata['bm25_score']:.3f}, Semantic: {item.metadata['semantic_score']:.3f}"
+        )
         print(f"\t{item.document[:DEFAULT_PEVIEW_LENGTH]}")
 
-def rrf_search_command(query: str, k: int = RRF_K, limit: int = DEFAULT_SEARCH_LIMIT):
+
+def rrf_search_command(
+    query: str, k: int = RRF_K, limit: int = DEFAULT_SEARCH_LIMIT, enhance: str = ""
+):
     movies = load_movies()
     srch = HybridSearch(movies)
-    results = srch.rrf_search(query, k, limit)
+    results = srch.rrf_search(query, k, limit, enhance)
 
     for index, item in enumerate(results, 1):
         print(f"{index}. {item.title}")
         print(f"\tRRF Score: {item.score:.3f}")
-        print(f"\tBM25 Rank: {item.metadata["bm25_rank"]}, Semantic Rank: {item.metadata["semantic_rank"]}")
+        print(
+            f"\tBM25 Rank: {item.metadata['bm25_rank']}, Semantic Rank: {item.metadata['semantic_rank']}"
+        )
         print(f"\t{item.document[:DEFAULT_PEVIEW_LENGTH]}")
