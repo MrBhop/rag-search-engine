@@ -12,7 +12,7 @@ model_name = "gemini-2.0-flash-001"
 client = genai.Client(api_key=api_key)
 
 
-def prompt_model(query: str, prompt_template: str):
+def prompt_model_for_query_enhancement(query: str, prompt_template: str):
     prompt = prompt_template % query
     response = client.models.generate_content(
         model=model_name,
@@ -31,7 +31,7 @@ Query: "%s"
 
 If no errors, return the original query.
 Corrected:"""
-    return prompt_model(query, prompt_template)
+    return prompt_model_for_query_enhancement(query, prompt_template)
 
 
 def rewrite(query: str):
@@ -53,7 +53,7 @@ Examples:
 - "scary movie with bear from few years ago" -> "bear horror movie 2015-2020"
 
 Rewritten query:"""
-    return prompt_model(query, prompt_template)
+    return prompt_model_for_query_enhancement(query, prompt_template)
 
 
 def expand(query: str):
@@ -71,7 +71,7 @@ Examples:
 
 Query: "%s"
 """
-    expanded_terms = prompt_model(query, prompt_template)
+    expanded_terms = prompt_model_for_query_enhancement(query, prompt_template)
     return f"{query} {expanded_terms}"
 
 
