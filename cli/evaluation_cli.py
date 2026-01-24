@@ -37,11 +37,17 @@ def main():
 
         precision_at_k = relevant_retrieved / len(retrieved_docs)
         recall_at_k = relevant_retrieved / len(relevant_docs)
+        f1_score = (
+            0
+            if precision_at_k + recall_at_k == 0
+            else 2 * (precision_at_k * recall_at_k) / (precision_at_k + recall_at_k)
+        )
 
         print(
             f"\n- Query: {query}\n"
             f"\t- Precision@{limit}: {precision_at_k:.4f}\n"
             f"\t- Recall@{limit}: {recall_at_k:.4f}\n"
+            f"\t- F1 Score: {f1_score:.4f}\n"
             f"\t- Retrieved: {', '.join([doc.title for doc in retrieved_docs])}\n"
             f"\t- Relevant: {', '.join(relevant_docs)}\n"
         )
