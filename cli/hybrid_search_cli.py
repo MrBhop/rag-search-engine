@@ -35,7 +35,7 @@ def main() -> None:
     _ = rrf_search_parser.add_argument(
         "--rerank-method",
         type=str,
-        choices=["individual"],
+        choices=["individual", "batch"],
         help="Reranking method",
     )
 

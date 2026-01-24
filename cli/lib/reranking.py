@@ -1,3 +1,4 @@
+import json
 from time import sleep
 import os
 from dotenv.main import load_dotenv
@@ -58,4 +59,45 @@ def rerank_individual(results: list[FormattedSearchResult], query: str, limit: i
         return result
 
     reranked_results = list(map(get_formatted_reranked_result, sorted_keys[:limit]))
+    return reranked_results
+
+def rerank_batch(results: list[FormattedSearchResult], query: str, limit: int):
+    # list of 'document strings' for passing to the LLM.
+    doc_list = []
+    # map doc ids, back to the indices in the original result.
+    ids_to_index = {}
+    for index, doc in enumerate(results):
+        ids_to_index[doc.id] = index
+        doc_list.append(
+            f"{doc.id}: {doc.title} - {doc.document[:200]}..."
+        )
+    doc_list_str = "\n".join(doc_list)
+
+    prompt = f"""Rank these movies by relevance to the search query.
+
+Query: "{query}"
+
+Movies:
+{doc_list_str}
+
+Return ONLY the IDs in order of relevance (best match first). Return a valid JSON list, nothing else, also no code block. For example:
+
+[75, 12, 34, 2, 1]
+"""
+    response = client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+    )
+    if response.text is None:
+        raise ValueError("Failed to get a response from the LLM.")
+    reranked_ids = json.loads(response.text.strip())
+
+    def get_formatted_reranked_result(rank: int, id: str):
+        # get index in original results from document id.
+        index = ids_to_index[id]
+        result = results[index]
+        result.metadata["batch_rank"] = rank
+        return result
+
+    reranked_results = [get_formatted_reranked_result(rank, str(id)) for rank, id in enumerate(reranked_ids[:limit], 1)]
     return reranked_results

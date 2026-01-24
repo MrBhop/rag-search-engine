@@ -1,9 +1,8 @@
-from time import sleep
 from collections import defaultdict
 import os
 
 from lib.query_enhancement import enhance_query
-from lib.reranking import rerank_individual
+from lib.reranking import rerank_individual, rerank_batch
 from lib.search_utils import (
     RRF_K,
     DEFAULT_PEVIEW_LENGTH,
@@ -201,6 +200,8 @@ def rrf_search_command(
             results = rerank_individual(results, query, limit)
             print(f"Reranking top {limit} results using individual method...")
             print(f"Reciprocal Rank Fusion Results for '{query}' (k={k}):")
+        case "batch":
+            results = rerank_batch(results, query, limit)
         case _:
             raise ValueError(f"Unexpected rerank-method: {rerank_method}")
 
@@ -208,8 +209,10 @@ def rrf_search_command(
         print(f"{index}. {item.title}")
         if reranked_score := item.metadata.get("reranked_score", None) is not None:
             print(f"Rerank Score: {reranked_score:.3f}/10")
+        if reranked_rank := item.metadata.get("batch_rank", None) is not None:
+            print(f"Rerank Rank: {reranked_rank}")
         print(f"\tRRF Score: {item.score:.3f}")
         print(
-            f"\tBM25 Rank: {item.metadata['bm25_rank']}, Semantic Rank: {item.metadata['semantic_rank']}..."
+            f"\tBM25 Rank: {item.metadata['bm25_rank']}, Semantic Rank: {item.metadata['semantic_rank']}"
         )
-        print(f"\t{item.document[:DEFAULT_PEVIEW_LENGTH]}")
+        print(f"\t{item.document[:DEFAULT_PEVIEW_LENGTH]}...")
