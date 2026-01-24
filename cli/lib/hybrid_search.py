@@ -91,7 +91,7 @@ class HybridSearch:
         k: int = RRF_K,
         limit: int = DEFAULT_SEARCH_LIMIT,
         enhance: str | None = None,
-    ):
+    ) -> list[FormattedSearchResult]:
         enhanced_query = enhance_query(query, enhance)
         if enhanced_query != query:
             print(f"Enhanced query ({enhance}): '{query}' -> '{enhanced_query}'\n")

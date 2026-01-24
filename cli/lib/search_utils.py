@@ -24,6 +24,7 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 DATA_PATH = os.path.join(PROJECT_ROOT, "data")
 MOVIES_PATH = os.path.join(DATA_PATH, "movies.json")
 STOPWORDS_PATH = os.path.join(DATA_PATH, "stopwords.txt")
+GOLDEN_DATASET_PATH = os.path.join(DATA_PATH, "golden_dataset.json")
 
 CACHE_PATH = os.path.join(PROJECT_ROOT, "cache")
 INDEX_PATH = os.path.join(CACHE_PATH, "index.pkl")
