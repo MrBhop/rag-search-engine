@@ -2,7 +2,7 @@ from collections import defaultdict
 import os
 
 from lib.query_enhancement import enhance_query
-from lib.reranking import rerank_individual, rerank_batch
+from lib.reranking import rerank_individual, rerank_batch, rerank_cross_encoder
 from lib.search_utils import (
     RRF_K,
     DEFAULT_PEVIEW_LENGTH,
@@ -193,24 +193,27 @@ def rrf_search_command(
     results = srch.rrf_search(
         query, k, limit if rerank_method is None else limit * 5, enhance
     )
-    match rerank_method:
-        case None:
-            pass
-        case "individual":
-            results = rerank_individual(results, query, limit)
-            print(f"Reranking top {limit} results using individual method...")
-            print(f"Reciprocal Rank Fusion Results for '{query}' (k={k}):")
-        case "batch":
-            results = rerank_batch(results, query, limit)
-        case _:
-            raise ValueError(f"Unexpected rerank-method: {rerank_method}")
+    if rerank_method is not None:
+        match rerank_method:
+            case "individual":
+                results = rerank_individual(results, query, limit)
+            case "batch":
+                results = rerank_batch(results, query, limit)
+            case "cross_encoder":
+                results = rerank_cross_encoder(results, query, limit)
+            case _:
+                raise ValueError(f"Unexpected rerank-method: {rerank_method}")
+        print(f"Reranking top {limit} results using {rerank_method} method...\n")
 
+    print(f"Reciprocal Rank Fusion Results for '{query}' (k={k}):")
     for index, item in enumerate(results, 1):
         print(f"{index}. {item.title}")
         if reranked_score := item.metadata.get("reranked_score", None) is not None:
-            print(f"Rerank Score: {reranked_score:.3f}/10")
+            print(f"\tRerank Score: {reranked_score:.3f}/10")
         if reranked_rank := item.metadata.get("batch_rank", None) is not None:
-            print(f"Rerank Rank: {reranked_rank}")
+            print(f"\tRerank Rank: {reranked_rank}")
+        if cross_encoder_score := item.metadata.get("cross_encoder_score", None) is not None:
+            print(f"\tCross Encoder Score: {cross_encoder_score:.3f}")
         print(f"\tRRF Score: {item.score:.3f}")
         print(
             f"\tBM25 Rank: {item.metadata['bm25_rank']}, Semantic Rank: {item.metadata['semantic_rank']}"
