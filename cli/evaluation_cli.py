@@ -34,10 +34,14 @@ def main():
         for doc in retrieved_docs:
             if doc.title in relevant_docs:
                 relevant_retrieved += 1
+
         precision_at_k = relevant_retrieved / len(retrieved_docs)
+        recall_at_k = relevant_retrieved / len(relevant_docs)
+
         print(
             f"\n- Query: {query}\n"
             f"\t- Precision@{limit}: {precision_at_k:.4f}\n"
+            f"\t- Recall@{limit}: {recall_at_k:.4f}\n"
             f"\t- Retrieved: {', '.join([doc.title for doc in retrieved_docs])}\n"
             f"\t- Relevant: {', '.join(relevant_docs)}\n"
         )
