@@ -72,3 +72,21 @@ class FormattedSearchResult:
         return FormattedSearchResult(
             str(doc.id), doc.title, doc.description, score, metadata if metadata else {}
         )
+
+    def __str__(self):
+        output = f"{self.title}"
+        if reranked_score := self.metadata.get("reranked_score", None) is not None:
+            output += f"\n\tRerank Score: {reranked_score:.3f}/10"
+        if reranked_rank := self.metadata.get("batch_rank", None) is not None:
+            output += f"\n\tRerank Rank: {reranked_rank}"
+        if (
+            cross_encoder_score := self.metadata.get("cross_encoder_score", None)
+            is not None
+        ):
+            output += f"\n\tCross Encoder Score: {cross_encoder_score:.3f}"
+        output += (
+            f"\n\tRRF Score: {self.score:.3f}"
+            + f"\n\tBM25 Rank: {self.metadata['bm25_rank']}, Semantic Rank: {self.metadata['semantic_rank']}"
+            + f"\n\t{self.document[:DEFAULT_PEVIEW_LENGTH]}..."
+        )
+        return output

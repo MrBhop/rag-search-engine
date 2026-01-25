@@ -1,3 +1,4 @@
+import logging
 from collections import defaultdict
 import os
 
@@ -14,6 +15,9 @@ from lib.search_utils import (
 
 from .keyword_search import InvertedIndex
 from .semantic_search import ChunkedSemanticSearch
+
+
+logger = logging.getLogger(__name__)
 
 
 class HybridSearch:
@@ -94,7 +98,9 @@ class HybridSearch:
     ) -> list[FormattedSearchResult]:
         enhanced_query = enhance_query(query, enhance)
         if enhanced_query != query:
-            print(f"Enhanced query ({enhance}): '{query}' -> '{enhanced_query}'\n")
+            logger.info(
+                "Enhanced query (%s): '%s' -> '%s'", enhance, query, enhanced_query
+            )
             query = enhanced_query
         bm25_results = self._bm25_search(query, 500 * limit)
         semantic_results = self.semantic_search.search_chunks(query, 500 * limit)
@@ -188,12 +194,17 @@ def rrf_search_command(
     enhance: str | None = None,
     rerank_method: str | None = None,
 ):
+    logger.debug("Entering rrf_search_command. Query: '%s'", query)
     movies = load_movies()
     srch = HybridSearch(movies)
     results = srch.rrf_search(
         query, k, limit if rerank_method is None else limit * 5, enhance
     )
+    logger.debug(
+        "Results, pre-reranking:\n%s", "\n".join([str(item) for item in results])
+    )
     if rerank_method is not None:
+        print(f"Reranking top {limit} results using {rerank_method} method...\n")
         match rerank_method:
             case "individual":
                 results = rerank_individual(results, query, limit)
@@ -203,19 +214,11 @@ def rrf_search_command(
                 results = rerank_cross_encoder(results, query, limit)
             case _:
                 raise ValueError(f"Unexpected rerank-method: {rerank_method}")
-        print(f"Reranking top {limit} results using {rerank_method} method...\n")
+
+    logger.debug(
+        "Results, post-reranking:\n%s", "\n".join([str(item) for item in results])
+    )
 
     print(f"Reciprocal Rank Fusion Results for '{query}' (k={k}):")
     for index, item in enumerate(results, 1):
-        print(f"{index}. {item.title}")
-        if reranked_score := item.metadata.get("reranked_score", None) is not None:
-            print(f"\tRerank Score: {reranked_score:.3f}/10")
-        if reranked_rank := item.metadata.get("batch_rank", None) is not None:
-            print(f"\tRerank Rank: {reranked_rank}")
-        if cross_encoder_score := item.metadata.get("cross_encoder_score", None) is not None:
-            print(f"\tCross Encoder Score: {cross_encoder_score:.3f}")
-        print(f"\tRRF Score: {item.score:.3f}")
-        print(
-            f"\tBM25 Rank: {item.metadata['bm25_rank']}, Semantic Rank: {item.metadata['semantic_rank']}"
-        )
-        print(f"\t{item.document[:DEFAULT_PEVIEW_LENGTH]}...")
+        print(f"{index}. {item}")

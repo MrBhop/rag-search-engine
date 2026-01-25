@@ -43,7 +43,9 @@ Score:"""
     return score
 
 
-def rerank_individual(results: list[FormattedSearchResult], query: str, limit: int):
+def rerank_individual(
+    results: list[FormattedSearchResult], query: str, limit: int
+) -> list[FormattedSearchResult]:
     llm_scores = {}
     for index, doc in enumerate(results):
         new_score = prompt_model_for_new_score(query, doc)
@@ -64,7 +66,9 @@ def rerank_individual(results: list[FormattedSearchResult], query: str, limit: i
     return reranked_results
 
 
-def rerank_batch(results: list[FormattedSearchResult], query: str, limit: int):
+def rerank_batch(
+    results: list[FormattedSearchResult], query: str, limit: int
+) -> list[FormattedSearchResult]:
     # list of 'document strings' for passing to the LLM.
     doc_list = []
     # map doc ids, back to the indices in the original result.
@@ -107,7 +111,9 @@ Return ONLY the IDs in order of relevance (best match first). Return a valid JSO
     return reranked_results
 
 
-def rerank_cross_encoder(results: list[FormattedSearchResult], query: str, limit: int):
+def rerank_cross_encoder(
+    results: list[FormattedSearchResult], query: str, limit: int
+) -> list[FormattedSearchResult]:
     pairs = []
     for doc in results:
         pairs.append([query, f"{doc.title} - {doc.document}"])

@@ -1,7 +1,16 @@
+import logging
 import argparse
 
 from lib.search_utils import DEFAULT_ALPHA, RRF_K, DEFAULT_SEARCH_LIMIT
-from lib.hybrid_search import normalize_command, rrf_search_command, weighted_search_command
+from lib.hybrid_search import (
+    normalize_command,
+    rrf_search_command,
+    weighted_search_command,
+)
+
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 
 def main() -> None:
@@ -15,17 +24,39 @@ def main() -> None:
         "values", type=float, nargs="+", help="List of scores to normalize"
     )
 
-    weighted_search_parser = subparser.add_parser("weighted-search", help="Perform weighted hybrid search")
+    weighted_search_parser = subparser.add_parser(
+        "weighted-search", help="Perform weighted hybrid search"
+    )
     _ = weighted_search_parser.add_argument("query", type=str, help="Search query")
-    _ = weighted_search_parser.add_argument("--alpha", type=float, default=DEFAULT_ALPHA, help=f"Weight for BM25 vs semantic (0=all semantic, 1=all BM25, default={DEFAULT_ALPHA})")
     _ = weighted_search_parser.add_argument(
-        "--limit", type=int, default=DEFAULT_SEARCH_LIMIT, help=f"Number of results to return (default={DEFAULT_SEARCH_LIMIT})"
+        "--alpha",
+        type=float,
+        default=DEFAULT_ALPHA,
+        help=f"Weight for BM25 vs semantic (0=all semantic, 1=all BM25, default={DEFAULT_ALPHA})",
+    )
+    _ = weighted_search_parser.add_argument(
+        "--limit",
+        type=int,
+        default=DEFAULT_SEARCH_LIMIT,
+        help=f"Number of results to return (default={DEFAULT_SEARCH_LIMIT})",
     )
 
-    rrf_search_parser = subparser.add_parser("rrf-search", help="Perform Reciprocal Rank Fusion search")
+    rrf_search_parser = subparser.add_parser(
+        "rrf-search", help="Perform Reciprocal Rank Fusion search"
+    )
     _ = rrf_search_parser.add_argument("query", type=str, help="Search query")
-    _ = rrf_search_parser.add_argument("-k", type=int, help=f"RRF k parameter controlling weight distribution (default={RRF_K})", default=RRF_K)
-    _ = rrf_search_parser.add_argument("--limit", type=int, help=f"Number of results to return (default={DEFAULT_SEARCH_LIMIT})", default=DEFAULT_SEARCH_LIMIT)
+    _ = rrf_search_parser.add_argument(
+        "-k",
+        type=int,
+        help=f"RRF k parameter controlling weight distribution (default={RRF_K})",
+        default=RRF_K,
+    )
+    _ = rrf_search_parser.add_argument(
+        "--limit",
+        type=int,
+        help=f"Number of results to return (default={DEFAULT_SEARCH_LIMIT})",
+        default=DEFAULT_SEARCH_LIMIT,
+    )
     _ = rrf_search_parser.add_argument(
         "--enhance",
         type=str,
@@ -47,7 +78,9 @@ def main() -> None:
         case "weighted-search":
             weighted_search_command(args.query, args.alpha, args.limit)
         case "rrf-search":
-            rrf_search_command(args.query, args.k, args.limit, args.enhance, args.rerank_method)
+            rrf_search_command(
+                args.query, args.k, args.limit, args.enhance, args.rerank_method
+            )
         case _:
             parser.print_help()
 
