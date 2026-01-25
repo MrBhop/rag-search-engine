@@ -4,6 +4,7 @@ import os
 
 from lib.query_enhancement import enhance_query
 from lib.reranking import rerank_individual, rerank_batch, rerank_cross_encoder
+from lib.evaluation import evaluate_results_llm
 from lib.search_utils import (
     RRF_K,
     DEFAULT_PEVIEW_LENGTH,
@@ -193,6 +194,7 @@ def rrf_search_command(
     limit: int = DEFAULT_SEARCH_LIMIT,
     enhance: str | None = None,
     rerank_method: str | None = None,
+    evaluate: bool = False,
 ):
     logger.debug("Entering rrf_search_command. Query: '%s'", query)
     movies = load_movies()
@@ -218,6 +220,11 @@ def rrf_search_command(
     logger.debug(
         "Results, post-reranking:\n%s", "\n".join([str(item) for item in results])
     )
+
+    if evaluate:
+        results = evaluate_results_llm(query, results)
+        for index, doc in enumerate(results, 1):
+            print(f"{index}. {doc.title}: {doc.metadata["llm_score"]}/3")
 
     print(f"Reciprocal Rank Fusion Results for '{query}' (k={k}):")
     for index, item in enumerate(results, 1):
