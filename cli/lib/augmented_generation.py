@@ -16,26 +16,53 @@ model_name = "gemini-2.0-flash-001"
 client = genai.Client(api_key=api_key)
 
 
-def generate_answer(search_results: list[FormattedSearchResult], query: str, limit=5):
-    prompt = f"""Answer the question or provide information based on the provided documents. This should be tailored to Hoopla users. Hoopla is a movie streaming service.
-
-Query: {query}
-
-Documents:
-{"\n\n".join([f"{doc.title}: {doc.document}" for doc in search_results])}
-
-Provide a comprehensive answer that addresses the query:"""
+def generate_answer(prompt: str):
     response = client.models.generate_content(model=model_name, contents=prompt)
     if response.text is None:
         raise ValueError("Failed to get a response from the LLM.")
     return response.text
+
 
 def rag(query: str, limit: int = DEFAULT_SEARCH_LIMIT):
     movies = load_movies()
     hybrid_search = HybridSearch(movies)
     results = hybrid_search.rrf_search(query, limit=limit)
 
-    answer = generate_answer(results, query, limit)
+    prompt = f"""Answer the question or provide information based on the provided documents. This should be tailored to Hoopla users. Hoopla is a movie streaming service.
+
+Query: {query}
+
+Documents:
+{"\n\n".join([f"{doc.title}: {doc.document}" for doc in results])}
+
+Provide a comprehensive answer that addresses the query:"""
+
+    answer = generate_answer(prompt)
+
+    return {
+        "query": query,
+        "search_results": results,
+        "answer": answer,
+    }
+
+
+def summarize(query: str, limit: int = DEFAULT_SEARCH_LIMIT):
+    movies = load_movies()
+    hybrid_search = HybridSearch(movies)
+    results = hybrid_search.rrf_search(query, limit=limit)
+
+    prompt = f"""
+Provide information useful to this query by synthesizing information from multiple search results in detail.
+The goal is to provide comprehensive information so that users know what their options are.
+Your response should be information-dense and concise, with several key pieces of information about the genre, plot, etc. of each movie.
+This should be tailored to Hoopla users. Hoopla is a movie streaming service.
+Query: {query}
+Search Results:
+{"\n\n".join([f"{doc.title}: {doc.document}" for doc in results])}
+Provide a comprehensive 3–4 sentence answer that combines information from multiple sources:
+"""
+
+    answer = generate_answer(prompt)
 
     return {
         "query": query,
@@ -46,3 +73,7 @@ def rag(query: str, limit: int = DEFAULT_SEARCH_LIMIT):
 
 def rag_command(query: str):
     return rag(query)
+
+
+def summarize_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT):
+    return summarize(query, limit)
