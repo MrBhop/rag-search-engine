@@ -28,7 +28,15 @@ def main():
         "query", type=str, help="Search query for summarization"
     )
     _ = citations_parser.add_argument(
-        "--limit", type=int, default=5, help="Maximum number of documents to summarize"
+        "--limit", type=int, default=5, help="Maximum number of documents to use"
+    )
+
+    question_parser = subparsers.add_parser(
+        "question", help="Answer a question dircetly and concisely"
+    )
+    _ = question_parser.add_argument("question", type=str, help="Question to answer")
+    _ = question_parser.add_argument(
+        "--limit", type=int, default=5, help="Maximum number of documents to use"
     )
 
     args = parser.parse_args()
@@ -58,6 +66,14 @@ def main():
                 print(f"\t- {doc.title}")
             print()
             print("LLM Answer:")
+            print(result["answer"])
+        case "question":
+            result = citations_command(args.question, args.limit)
+            print("Search Results:")
+            for doc in result["search_results"]:
+                print(f"\t- {doc.title}")
+            print()
+            print("Answer:")
             print(result["answer"])
         case _:
             parser.print_help()

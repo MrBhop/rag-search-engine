@@ -76,9 +76,7 @@ def citations(query: str, limit: int = DEFAULT_SEARCH_LIMIT):
     hybrid_search = HybridSearch(movies)
     results = hybrid_search.rrf_search(query, limit=limit)
 
-    prompt = (
-        prompt
-    ) = f"""Answer the question or provide information based on the provided documents.
+    prompt = f"""Answer the question or provide information based on the provided documents.
 
 This should be tailored to Hoopla users. Hoopla is a movie streaming service.
 
@@ -107,6 +105,40 @@ Answer:"""
     }
 
 
+def question(query: str, limit: int = DEFAULT_SEARCH_LIMIT):
+    movies = load_movies()
+    hybrid_search = HybridSearch(movies)
+    results = hybrid_search.rrf_search(query, limit=limit)
+
+    prompt = f"""Answer the following question based on the provided documents.
+
+Question: {query}
+
+Documents:
+{"\n\n".join([f"[{index}]: {doc.title}: {doc.document}" for index, doc in enumerate(results, 1)])}
+
+General instructions:
+- Answer directly and concisely
+- Use only information from the documents
+- If the answer isn't in the documents, say "I don't have enough information"
+- Cite sources when possible
+
+Guidance on types of questions:
+- Factual questions: Provide a direct answer
+- Analytical questions: Compare and contrast information from the documents
+- Opinion-based questions: Acknowledge subjectivity and provide a balanced view
+
+Answer:"""
+
+    answer = generate_answer(prompt)
+
+    return {
+        "query": query,
+        "search_results": results,
+        "answer": answer,
+    }
+
+
 def rag_command(query: str):
     return rag(query)
 
@@ -117,3 +149,7 @@ def summarize_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT):
 
 def citations_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT):
     return citations(query, limit)
+
+
+def question_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT):
+    return question(query, limit)
