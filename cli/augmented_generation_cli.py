@@ -1,6 +1,6 @@
 import argparse
 
-from lib.augmented_generation import rag_command, summarize_command
+from lib.augmented_generation import rag_command, summarize_command, citations_command
 
 
 def main():
@@ -21,6 +21,16 @@ def main():
         "--limit", type=int, default=5, help="Maximum number of documents to summarize"
     )
 
+    citations_parser = subparsers.add_parser(
+        "citations", help="Generate answer with citations"
+    )
+    _ = citations_parser.add_argument(
+        "query", type=str, help="Search query for summarization"
+    )
+    _ = citations_parser.add_argument(
+        "--limit", type=int, default=5, help="Maximum number of documents to summarize"
+    )
+
     args = parser.parse_args()
 
     match args.command:
@@ -37,9 +47,17 @@ def main():
             result = summarize_command(args.query, args.limit)
             print("Search Results:")
             for doc in result["search_results"]:
-                print(f"\t-{doc.title}")
+                print(f"\t- {doc.title}")
             print()
             print("LLM Summary:")
+            print(result["answer"])
+        case "citations":
+            result = citations_command(args.query, args.limit)
+            print("Search Results:")
+            for doc in result["search_results"]:
+                print(f"\t- {doc.title}")
+            print()
+            print("LLM Answer:")
             print(result["answer"])
         case _:
             parser.print_help()
